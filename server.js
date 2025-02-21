@@ -1,13 +1,12 @@
 import express from "express";
 import http from "http";
-import { Server as socketIo } from "socket.io"; // Fix Socket.IO import
+import { Server } from "socket.io"; // ✅ Fixed import
 import fetch from "node-fetch";
 import cors from "cors";
 
-
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
+const io = new Server(server, { // ✅ Fixed instantiation
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
@@ -24,12 +23,12 @@ const XIRSYS_AUTH = "Basic " + Buffer.from("prathamlakhani:07a7695a-f0a6-11ef-8d
 app.get("/getIceServers", async (req, res) => {
     try {
         const response = await fetch(XIRSYS_API_URL, {
-            method: "PUT", 
+            method: "PUT",
             headers: {
                 "Authorization": XIRSYS_AUTH,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ format: "urls" }) // Ensure response is in the correct format
+            body: JSON.stringify({ format: "urls" })
         });
 
         const data = await response.json();
@@ -107,7 +106,7 @@ io.on("connection", (socket) => {
         delete activePairs[socket.id];
 
         waitingUsers = waitingUsers.filter(id => id !== socket.id);
-        socket.emit("find_match"); // Rejoin queue for a new match
+        socket.emit("find_match");
     });
 
     socket.on("disconnect", () => {
@@ -125,5 +124,5 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
-    console.log(`✅ SServer running on port ${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
 });
