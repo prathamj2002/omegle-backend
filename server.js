@@ -130,21 +130,21 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log(`❌ User disconnected: ${socket.id}`);
     
-        // Remove user from active pairs
-        let partnerId = activePairs[socket.id];
-        if (partnerId) {
-            console.log(`Notifying partner ${partnerId} that ${socket.id} disconnected`);
+        if (activePairs[socket.id]) {
+            let partnerId = activePairs[socket.id];
+            console.log(`🔴 Notifying partner ${partnerId} that ${socket.id} disconnected`);
             io.to(partnerId).emit("disconnect_peer");
             delete activePairs[partnerId];
         }
-        
-        // Remove user from all tracking lists
+    
+        // ✅ Remove user from active lists
         delete activePairs[socket.id];
         waitingUsers = waitingUsers.filter(id => id !== socket.id);
     
         console.log(`🚀 Updated active users:`, Object.keys(activePairs));
         console.log(`🚀 Updated waiting queue:`, waitingUsers);
     });
+    
     
 });
 
