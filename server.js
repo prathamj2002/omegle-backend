@@ -69,7 +69,15 @@ let waitingUsers = []; // Queue for users waiting for a match
 let activePairs = {}; // Active matched users
 
 io.on("connection", (socket) => {
+
+
     console.log(`User connected: ${socket.id}`);
+
+    console.log("🚀 Active WebSocket Connections:", io.engine.clientsCount);
+    console.log("🚀 Active User IDs:", Object.keys(activePairs));
+    console.log("🚀 Waiting Queue:", waitingUsers);
+    console.log("🚀 All connected sockets:", Object.keys(io.sockets.sockets));
+
 
     socket.on("find_match", () => {
         console.log(`User ${socket.id} requested a match`);
