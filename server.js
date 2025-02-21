@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
-const fetch = require("node-fetch"); // Ensure you install this: npm install node-fetch
+import fetch from "node-fetch";
 const cors = require("cors");
 
 const app = express();
@@ -23,7 +23,7 @@ const XIRSYS_AUTH = "Basic " + Buffer.from("prathamlakhani:07a7695a-f0a6-11ef-8d
 app.get("/getIceServers", async (req, res) => {
     try {
         const response = await fetch(XIRSYS_API_URL, {
-            method: "PUT",
+            method: "PUT", 
             headers: {
                 "Authorization": XIRSYS_AUTH,
                 "Content-Type": "application/json"
@@ -124,5 +124,5 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`✅ SServer running on port ${PORT}`);
 });
