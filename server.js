@@ -40,19 +40,23 @@ app.get("/getIceServers", async (req, res) => {
             return res.status(500).json({ error: "Xirsys API Error", details: data });
         }
 
-        if (data?.v?.iceServers) {
-            const formattedIceServers = data.v.iceServers.map(server => ({
-                urls: server.urls,
-                username: server.username || "",
-                credential: server.credential || ""
-            }));
-
-            console.log("✅ Xirsys ICE Servers Retrieved Successfully:", formattedIceServers);
+        if (data?.v?.iceServers && typeof data.v.iceServers === "object") {
+            // Convert Xirsys response into an array of ICE servers
+            const formattedIceServers = [
+                {
+                    urls: data.v.iceServers.urls,
+                    username: data.v.iceServers.username || "",
+                    credential: data.v.iceServers.credential || ""
+                }
+            ];
+        
+            console.log("✅ Fixed Xirsys ICE Servers Format:", formattedIceServers);
             return res.json(formattedIceServers);
         } else {
             console.error("⚠️ Invalid Xirsys API Response:", data);
             return res.status(500).json({ error: "Invalid Xirsys API Response", details: data });
         }
+        
     } catch (error) {
         console.error("🚨 Error Fetching ICE Servers:", error);
         return res.status(500).json({ error: "Failed to fetch Xirsys ICE Servers" });
