@@ -34,12 +34,21 @@ app.get("/getIceServers", async (req, res) => {
         const data = await response.json();
 
         if (data?.v?.iceServers) {
-            console.log("✅ Xirsys ICE Servers Retrieved Successfully");
-            res.json(data.v.iceServers);
+            const formattedIceServers = data.v.iceServers.map(server => {
+                return {
+                    urls: server.urls,
+                    username: server.username || "",
+                    credential: server.credential || ""
+                };
+            });
+        
+            console.log("✅ Xirsys ICE Servers Retrieved Successfully:", formattedIceServers);
+            res.json(formattedIceServers);
         } else {
             console.error("⚠️ Xirsys API returned an invalid format:", data);
             res.status(500).json({ error: "Invalid Xirsys API Response", details: data });
         }
+        
     } catch (error) {
         console.error("🚨 Error Fetching ICE Servers:", error);
         res.status(500).json({ error: "Failed to fetch Xirsys ICE Servers" });
