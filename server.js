@@ -22,6 +22,8 @@ const XIRSYS_AUTH = "Basic " + Buffer.from("prathamlakhani:07a7695a-f0a6-11ef-8d
 // Create API Endpoint to Get ICE Servers
 app.get("/getIceServers", async (req, res) => {
     try {
+        console.log("📡 Requesting ICE servers from Xirsys...");
+        
         const response = await fetch(XIRSYS_API_URL, {
             method: "PUT",
             headers: {
@@ -33,27 +35,30 @@ app.get("/getIceServers", async (req, res) => {
 
         const data = await response.json();
 
-        if (data?.v?.iceServers) {
-            const formattedIceServers = data.v.iceServers.map(server => {
-                return {
-                    urls: server.urls,
-                    username: server.username || "",
-                    credential: server.credential || ""
-                };
-            });
-        
-            console.log("✅ Xirsys ICE Servers Retrieved Successfully:", formattedIceServers);
-            res.json(formattedIceServers);
-        } else {
-            console.error("⚠️ Xirsys API returned an invalid format:", data);
-            res.status(500).json({ error: "Invalid Xirsys API Response", details: data });
+        if (!response.ok) {
+            console.error("🚨 Xirsys API Error:", data);
+            return res.status(500).json({ error: "Xirsys API Error", details: data });
         }
-        
+
+        if (data?.v?.iceServers) {
+            const formattedIceServers = data.v.iceServers.map(server => ({
+                urls: server.urls,
+                username: server.username || "",
+                credential: server.credential || ""
+            }));
+
+            console.log("✅ Xirsys ICE Servers Retrieved Successfully:", formattedIceServers);
+            return res.json(formattedIceServers);
+        } else {
+            console.error("⚠️ Invalid Xirsys API Response:", data);
+            return res.status(500).json({ error: "Invalid Xirsys API Response", details: data });
+        }
     } catch (error) {
         console.error("🚨 Error Fetching ICE Servers:", error);
-        res.status(500).json({ error: "Failed to fetch Xirsys ICE Servers" });
+        return res.status(500).json({ error: "Failed to fetch Xirsys ICE Servers" });
     }
 });
+
 
 // WebRTC Matching System
 let waitingUsers = []; // Queue for users waiting for a match
