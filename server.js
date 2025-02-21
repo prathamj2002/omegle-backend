@@ -54,17 +54,23 @@ app.get("/getIceServers", async (req, res) => {
     }
 });
 
-// ✅ WebRTC User Matching System
+// ✅ User Management System
 let waitingUsers = []; 
 let activePairs = {}; 
+let activeConnections = {}; // ✅ Track all active WebSocket connections
 
 io.on("connection", (socket) => {
-    console.log(`✅ User connected: ${socket.id}`);
+    // ✅ Prevent duplicate connections from the same device
+    if (activeConnections[socket.id]) {
+        console.log(`⚠️ Duplicate connection detected: ${socket.id}, disconnecting old one.`);
+        socket.disconnect(true);
+        return;
+    }
 
-    // ✅ Debugging Active Connections
-    console.log("🚀 Active Users:", Object.keys(activePairs));
-    console.log("🚀 Waiting Queue:", waitingUsers);
-    console.log("🚀 All Connected Sockets:", Object.keys(io.sockets.sockets));
+    // ✅ Register the new connection
+    activeConnections[socket.id] = socket;
+    console.log(`✅ User connected: ${socket.id}`);
+    updateServerStats();
 
     // ✅ User Requests a Match
     socket.on("find_match", () => {
@@ -93,6 +99,7 @@ io.on("connection", (socket) => {
             waitingUsers.push(socket.id);
             console.log(`➕ User ${socket.id} added to waiting queue`);
         }
+        updateServerStats();
     });
 
     // ✅ WebRTC Signaling
@@ -123,6 +130,7 @@ io.on("connection", (socket) => {
 
         waitingUsers = waitingUsers.filter(id => id !== socket.id);
         socket.emit("find_match");
+        updateServerStats();
     });
 
     // ✅ Handle User Disconnects
@@ -136,14 +144,21 @@ io.on("connection", (socket) => {
             delete activePairs[partnerId];
         }
 
-        // Remove from active users & queue
+        // ✅ Remove user from active lists
         delete activePairs[socket.id];
+        delete activeConnections[socket.id]; // ✅ Remove from active connections
         waitingUsers = waitingUsers.filter(id => id !== socket.id);
 
-        console.log(`🚀 Updated Active Users:`, Object.keys(activePairs));
-        console.log(`🚀 Updated Waiting Queue:`, waitingUsers);
+        updateServerStats();
     });
 });
+
+// ✅ Function to Log Server Stats
+function updateServerStats() {
+    console.log(`🚀 Active Users: ${Object.keys(activePairs).length}`);
+    console.log(`🚀 Waiting Queue: ${waitingUsers.length}`);
+    console.log(`🚀 All Connected Sockets: ${Object.keys(activeConnections).length}`);
+}
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;
