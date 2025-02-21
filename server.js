@@ -1,12 +1,12 @@
 import express from "express";
 import http from "http";
-import { Server } from "socket.io"; // ✅ Fixed import
+import { Server } from "socket.io";
 import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { // ✅ Fixed instantiation
+const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
@@ -15,11 +15,11 @@ const io = new Server(server, { // ✅ Fixed instantiation
 
 app.use(cors());
 
-// Xirsys TURN Server Credentials
+// ✅ Xirsys TURN Server Credentials
 const XIRSYS_API_URL = "https://global.xirsys.net/_turn/MyFirstApp";
 const XIRSYS_AUTH = "Basic " + Buffer.from("prathamlakhani:07a7695a-f0a6-11ef-8d7c-0242ac150003").toString("base64");
 
-// Create API Endpoint to Get ICE Servers
+// ✅ API Endpoint to Fetch ICE Servers
 app.get("/getIceServers", async (req, res) => {
     try {
         console.log("📡 Requesting ICE servers from Xirsys...");
@@ -40,18 +40,9 @@ app.get("/getIceServers", async (req, res) => {
             return res.status(500).json({ error: "Xirsys API Error", details: data });
         }
 
-        if (data?.v?.iceServers && typeof data.v.iceServers === "object") {
-            // Convert Xirsys response into an array of ICE servers
-            const formattedIceServers = [
-                {
-                    urls: data.v.iceServers.urls,
-                    username: data.v.iceServers.username || "",
-                    credential: data.v.iceServers.credential || ""
-                }
-            ];
-        
-            console.log("✅ Fixed Xirsys ICE Servers Format:", formattedIceServers);
-            return res.json(formattedIceServers);
+        if (data?.v?.iceServers && Array.isArray(data.v.iceServers)) {
+            console.log("✅ Xirsys ICE Servers:", data.v.iceServers);
+            return res.json(data.v.iceServers);
         } else {
             console.error("⚠️ Invalid Xirsys API Response:", data);
             return res.status(500).json({ error: "Invalid Xirsys API Response", details: data });
@@ -63,27 +54,24 @@ app.get("/getIceServers", async (req, res) => {
     }
 });
 
-
-// WebRTC Matching System
-let waitingUsers = []; // Queue for users waiting for a match
-let activePairs = {}; // Active matched users
+// ✅ WebRTC User Matching System
+let waitingUsers = []; 
+let activePairs = {}; 
 
 io.on("connection", (socket) => {
+    console.log(`✅ User connected: ${socket.id}`);
 
-
-    console.log(`User connected: ${socket.id}`);
-
-    console.log("🚀 Active WebSocket Connections:", io.engine.clientsCount);
-    console.log("🚀 Active User IDs:", Object.keys(activePairs));
+    // ✅ Debugging Active Connections
+    console.log("🚀 Active Users:", Object.keys(activePairs));
     console.log("🚀 Waiting Queue:", waitingUsers);
-    console.log("🚀 All connected sockets:", Object.keys(io.sockets.sockets));
+    console.log("🚀 All Connected Sockets:", Object.keys(io.sockets.sockets));
 
-
+    // ✅ User Requests a Match
     socket.on("find_match", () => {
-        console.log(`User ${socket.id} requested a match`);
+        console.log(`🔍 User ${socket.id} requested a match`);
 
         if (waitingUsers.includes(socket.id)) {
-            console.log(`User ${socket.id} is already in the queue`);
+            console.log(`❌ User ${socket.id} is already in the queue`);
             return;
         }
 
@@ -103,29 +91,31 @@ io.on("connection", (socket) => {
             io.to(partnerSocketId).emit("match_found", socket.id);
         } else {
             waitingUsers.push(socket.id);
-            console.log(`User ${socket.id} added to waiting queue`);
+            console.log(`➕ User ${socket.id} added to waiting queue`);
         }
     });
 
+    // ✅ WebRTC Signaling
     socket.on("offer", (data) => {
-        console.log(`📤 Offer received from ${socket.id}, forwarding to ${data.target}`);
+        console.log(`📤 Offer from ${socket.id} → ${data.target}`);
         io.to(data.target).emit("offer", { sdp: data.sdp, sender: socket.id });
     });
 
     socket.on("answer", (data) => {
-        console.log(`📤 Answer received from ${socket.id}, forwarding to ${data.target}`);
+        console.log(`📤 Answer from ${socket.id} → ${data.target}`);
         io.to(data.target).emit("answer", { sdp: data.sdp, sender: socket.id });
     });
 
     socket.on("ice-candidate", (data) => {
-        console.log(`📤 ICE Candidate received from ${socket.id}, forwarding to ${data.target}`);
+        console.log(`📤 ICE Candidate from ${socket.id} → ${data.target}`);
         io.to(data.target).emit("ice-candidate", { candidate: data.candidate, sender: socket.id });
     });
 
+    // ✅ "Next" Button - Disconnect and Find New Match
     socket.on("next", () => {
         let partnerId = activePairs[socket.id];
         if (partnerId) {
-            console.log(`User ${socket.id} skipped ${partnerId}`);
+            console.log(`🔄 User ${socket.id} skipped ${partnerId}`);
             io.to(partnerId).emit("disconnect_peer");
             delete activePairs[partnerId];
         }
@@ -135,27 +125,27 @@ io.on("connection", (socket) => {
         socket.emit("find_match");
     });
 
+    // ✅ Handle User Disconnects
     socket.on("disconnect", () => {
         console.log(`❌ User disconnected: ${socket.id}`);
-    
+
         if (activePairs[socket.id]) {
             let partnerId = activePairs[socket.id];
-            console.log(`🔴 Notifying partner ${partnerId} that ${socket.id} disconnected`);
+            console.log(`🔴 Notifying ${partnerId} that ${socket.id} disconnected`);
             io.to(partnerId).emit("disconnect_peer");
             delete activePairs[partnerId];
         }
-    
-        // ✅ Remove user from active lists
+
+        // Remove from active users & queue
         delete activePairs[socket.id];
         waitingUsers = waitingUsers.filter(id => id !== socket.id);
-    
-        console.log(`🚀 Updated active users:`, Object.keys(activePairs));
-        console.log(`🚀 Updated waiting queue:`, waitingUsers);
+
+        console.log(`🚀 Updated Active Users:`, Object.keys(activePairs));
+        console.log(`🚀 Updated Waiting Queue:`, waitingUsers);
     });
-    
-    
 });
 
+// ✅ Start Server
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
